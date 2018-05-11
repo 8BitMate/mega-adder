@@ -1,0 +1,31 @@
+{-# LANGUAGE RankNTypes #-}
+
+module Main where
+
+newtype Adder = Adder { unAdder :: forall b. Int -> (Int -> b) -> b }
+
+inc :: Adder
+inc = Adder $ \n fn -> fn (n + 1)
+
+addTo :: Int -> Adder
+addTo n = Adder $ \n' fn -> fn (n' + n)
+
+infixl 1 >>>
+
+(>>>) :: Adder -> Adder -> Adder
+a1 >>> a2 = Adder $ \n fn ->
+    let fx x = unAdder a2 x fn
+    in  unAdder a1 n fx
+
+runAdder :: Int -> Adder -> Int
+runAdder n a = unAdder a n id
+
+megaAdd :: Int -> Int -> Int
+megaAdd n1 n2 = runAdder 0 (addTo n1 >>> addTo n2)
+
+megaInc :: Int -> Int
+megaInc n = runAdder n inc
+
+main :: IO ()
+main = do print $ megaAdd 2 3
+          print $ megaInc 9
